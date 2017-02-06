@@ -144,7 +144,7 @@ class ChainInternal {
         return currThrown;
     }
     
-    private void addClosingAction(final StageBase closingStage, final Method close, final Object[] args) {
+    void addClosingAction(final StageBase closingStage, final Method close, final Object[] args) {
         actions.add(new ClosingAction() {
             public void close() {
                 assert(closing);
@@ -152,7 +152,7 @@ class ChainInternal {
                     // puo' essere impostato dalla ClosingAction tramite rethrow;
                     // serve solo per l'uso interno alla ClosingAction
                 try {
-                    Launcher.runProtectedInternal(closingStage, close, args, ChainInternal.this);
+                    Launcher.runProtectedInternal(closingStage, close, null, args, ChainInternal.this);
                     currThrown = null;
                         // per semplicita', lo annulliamo anche se c'e' una pendingResume;
                         // l'operazione rilanciata non avra' il supporto di getBodyException
@@ -228,11 +228,8 @@ class ChainInternal {
             return null;
         } else {
             starting = false;
-            if (close != null) {
-                addClosingAction(currStage, close, args);
-            }
             Launcher launcher = extractLauncher();
-            return launcher.launch(currStage, body, args, (Chain) this);
+            return launcher.launch(currStage, body, close, args, (Chain) this);
         }
     }
     
@@ -267,11 +264,8 @@ class ChainInternal {
             // eccezione pendente verrebbero persi lo stesso
         } else {
             starting = false;
-            if (close != null) {
-                addClosingAction(currStage, close, args);
-            }
             Launcher launcher = extractLauncher();
-            launcher.launchProtected(currStage, body, args, (Chain) this);
+            launcher.launchProtected(currStage, body, close, args, (Chain) this);
         }
     }
         

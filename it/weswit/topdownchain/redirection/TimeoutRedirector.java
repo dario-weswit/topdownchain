@@ -59,16 +59,16 @@ public class TimeoutRedirector extends ReentrantRedirector implements BaseRedire
     protected class MyUniqueLauncher extends Launcher {
         
         @Override
-        protected Object launch(StageBase stage, Method method, Object[] args, Chain chain)
+        protected Object launch(StageBase stage, Method method, Method close, Object[] args, Chain chain)
                 throws InvocationTargetException, IllegalAccessException, RedirectedException
         {
-            launchProtected(stage, method, args, chain);
+            launchProtected(stage, method, close, args, chain);
             assert(false);
             return null;
         }
 
         @Override
-        protected void launchProtected(final StageBase stage, final Method method, final Object[] args, final Chain baseChain)
+        protected void launchProtected(final StageBase stage, final Method method, final Method close, final Object[] args, final Chain baseChain)
                 throws RedirectedException
         {
             final AtomicBoolean consumed = new AtomicBoolean(false);
@@ -95,7 +95,7 @@ public class TimeoutRedirector extends ReentrantRedirector implements BaseRedire
                         assert(args.length >= 1 && args[args.length - 1] == baseChain);
                         Launcher und = undRedirector.getLauncher();
                             // viene estratto qui anziché dalla Chain
-                        launchOnNewChain(und, stage, method, args, chain);
+                        launchOnNewChain(und, stage, method, close, args, chain);
                     }
                 },
                 new ChainOutcomeListener() {

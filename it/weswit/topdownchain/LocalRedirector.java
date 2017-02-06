@@ -9,17 +9,17 @@ public class LocalRedirector extends ReentrantRedirector {
         return new Launcher() {
             
             @Override
-            protected Object launch(StageBase stage, Method method, Object[] args, Chain chain)
+            protected Object launch(StageBase stage, Method method, Method close, Object[] args, Chain chain)
                 throws InvocationTargetException, IllegalAccessException, RedirectedException
             {
-                return runLocally(stage, method, args, chain);
+                return runLocally(stage, method, close, args, chain);
             }
 
             @Override
-            protected void launchProtected(StageBase stage, Method method, Object[] args, Chain chain)
+            protected void launchProtected(StageBase stage, Method method, Method close, Object[] args, Chain chain)
                     throws RedirectedException
             {
-                runProtected(stage, method, args, chain);
+                runProtected(stage, method, close, args, chain);
             }
 
             protected boolean isRedirecting() {

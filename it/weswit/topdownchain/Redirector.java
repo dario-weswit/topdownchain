@@ -69,26 +69,28 @@ public abstract class Redirector implements BaseRedirector {
     private class DeferredLauncher extends Launcher {
         private StageBase deferredStage;
         private Method deferredMethod;
+        private Method deferredClose;
         private Object[] deferredArgs;
         // NOTA: terremo sincronizzate queste variabili insieme
         // a quelle del Redirector di riferimento (vedi nota relativa)
 
         @Override
-        protected final Object launch(StageBase stage, Method method, Object[] args, Chain chain)
+        protected final Object launch(StageBase stage, Method method, Method close, Object[] args, Chain chain)
                 throws InvocationTargetException, IllegalAccessException, RedirectedException
         {
-            launchProtected(stage, method, args, chain);
+            launchProtected(stage, method, close, args, chain);
             assert(false);
             return null;
         }
 
         @Override
-        protected final void launchProtected(StageBase stage, Method method, Object[] args, Chain chain)
+        protected final void launchProtected(StageBase stage, Method method, Method close, Object[] args, Chain chain)
                 throws RedirectedException
         {
             synchronized (Redirector.this) {
                 deferredStage = stage;
                 deferredMethod = method;
+                deferredClose = close;
                 deferredArgs = args;
                 deferredChain = chain;
             }
@@ -100,7 +102,7 @@ public abstract class Redirector implements BaseRedirector {
         
         private void defer() {
             // gia' sincronizzato su Redirector.this
-            runRedirected(deferredStage, deferredMethod, deferredArgs, deferredChain);
+            runRedirected(deferredStage, deferredMethod, deferredClose, deferredArgs, deferredChain);
         }
         
         public boolean isRedirecting() {

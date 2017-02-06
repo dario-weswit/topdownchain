@@ -15,30 +15,33 @@ public abstract class Launcher {
      * In caso di completamento torna il risultato o l'eccezione;
      * in caso di redirezione torna la RedirectedException
      */
-    protected abstract Object launch(StageBase stage, Method method, Object[] args, Chain chain)
+    protected abstract Object launch(StageBase stage, Method method, Method close, Object[] args, Chain chain)
         throws InvocationTargetException, IllegalAccessException, RedirectedException;
 
     /*
      * In caso di completamento salva il risultato o l'eccezione e torna;
      * in caso di redirezione torna la RedirectedException
      */
-    protected abstract void launchProtected(StageBase stage, Method method, Object[] args, Chain chain)
+    protected abstract void launchProtected(StageBase stage, Method method, Method close, Object[] args, Chain chain)
         throws RedirectedException;
 
     protected abstract boolean isRedirecting();
 
-    protected static void launchOnNewChain(Launcher launcher, StageBase stage, Method method, Object[] args, Chain chain)
+    protected static void launchOnNewChain(Launcher launcher, StageBase stage, Method method, Method close, Object[] args, Chain chain)
         throws RedirectedException
     {
         args[args.length - 1] = chain;
-        launcher.launchProtected(stage, method, args, chain);
+        launcher.launchProtected(stage, method, close, args, chain);
     }
 
-    protected static void runProtected(Object stage, Method method, Object[] args, Chain chain) throws RedirectedException {
-        runProtectedInternal(stage, method, args, chain);
+    protected static void runProtected(StageBase stage, Method method, Method close, Object[] args, Chain chain) throws RedirectedException {
+        runProtectedInternal(stage, method, close, args, chain);
     }
 
-    static void runProtectedInternal(Object stage, Method method, Object[] args, ChainInternal chain) throws RedirectedException {
+    static void runProtectedInternal(StageBase stage, Method method, Method close, Object[] args, ChainInternal chain) throws RedirectedException {
+        if (close != null) {
+            chain.addClosingAction(stage, close, args);
+        }
         try {
             Object ret = method.invoke(stage, args);
             if (method.getReturnType() == void.class) {
@@ -116,9 +119,9 @@ public abstract class Launcher {
         return chain.logger;
     }
 
-    protected static void runRedirected(Object stage, Method method, Object[] args, Chain chain) {
+    protected static void runRedirected(StageBase stage, Method method, Method close, Object[] args, Chain chain) {
         try {
-            runProtected(stage, method, args, chain);
+            runProtected(stage, method, close, args, chain);
         } catch (RedirectedException e) {
             // OK, rediretto, quindi la chain sta proseguendo altrove
             // (o addirittura e' gia' proseguita, in callback, in questo thread)
@@ -130,9 +133,12 @@ public abstract class Launcher {
         chain.onClose();
     }
 
-    protected static Object runLocally(StageBase stage, Method method, Object[] args, Chain chain)
+    protected static Object runLocally(StageBase stage, Method method, Method close, Object[] args, Chain chain)
             throws InvocationTargetException, IllegalAccessException, RedirectedException
     {
+		if (close != null) {
+			chain.addClosingAction(stage, close, args);
+		}
         // qui il tipo di ritorno deve essere già accertato come coerente,
         // quindi possiamo lasciare il controllo dell'esito al chiamante;
         // l'eccezione però potrebbe non essere compatibile

@@ -25,14 +25,14 @@ public class TimerRedirector extends ReentrantRedirector {
         return new Launcher() {
 
             @Override
-            protected final Object launch(final StageBase stage, final Method method, final Object[] args, final Chain chain)
+            protected final Object launch(final StageBase stage, final Method method, final Method close, final Object[] args, final Chain chain)
                 throws RedirectedException, IllegalAccessException, InvocationTargetException
             {
                 long now = System.currentTimeMillis();
                 if (targetTime <= now) {
-                    return runLocally(stage, method, args, chain);
+                    return runLocally(stage, method, close, args, chain);
                 } else {
-                    launchProtected(stage, method, args, chain);
+                    launchProtected(stage, method, close, args, chain);
                     // assert(false); non è detto, se cambia il millisecondo: dobbiamo provvedere
                     closeChain(chain, null);
                     return notifyRedirection();
@@ -40,19 +40,19 @@ public class TimerRedirector extends ReentrantRedirector {
             }
 
             @Override
-            protected final void launchProtected(final StageBase stage, final Method method, final Object[] args, final Chain chain)
+            protected final void launchProtected(final StageBase stage, final Method method, final Method close, final Object[] args, final Chain chain)
                     throws RedirectedException
             {
                 long now = System.currentTimeMillis();
                 if (targetTime <= now) {
-                    runProtected(stage, method, args, chain);
+                    runProtected(stage, method, close, args, chain);
                 } else {
                     // NOTA: il passaggio al timer procura anche un momemto
                     // di sincronizzazione tra i due thread;
                     // cio' serve anche a garantire la sincronizzazione su Chain
                     timer.schedule(new TimerTask() {
                         public void run() {
-                            runRedirected(stage, method, args, chain);
+                            runRedirected(stage, method, close, args, chain);
                         }
                     }, targetTime - now);
                     notifyRedirection();
