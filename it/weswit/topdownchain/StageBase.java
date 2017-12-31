@@ -61,11 +61,12 @@ public abstract class StageBase {
         }
         Constructor<? extends StageBase> constr;
         try {
-            constr = info.proxyClass.getConstructor(argsTypes);
-        } catch (NoSuchMethodException e) {
-            throw new PatternException("Suitable constructor not found in stage class", e);
+            constr = findSuitableConstructor(info.proxyClass, argsTypes);
         } catch (SecurityException e) {
             throw new PatternException("Cannot find a suitable constructor in stage class", e);
+        }
+        if (constr == null) {
+            throw new PatternException("Suitable constructor not found in stage class");
         }
         Object proxy;
         try {
@@ -82,6 +83,34 @@ public abstract class StageBase {
         ((Proxy) proxy).setHandler(info.proxyHandler);
         ((StageBase) proxy).isVoidInvoke = info.isVoidInvoke;
         return (STAGE) proxy;
+    }
+    
+    static Constructor<? extends StageBase> findSuitableConstructor(Class<? extends StageBase> proxyClass, Class<?>[] argsTypes) {
+        Constructor<?>[] constructors = proxyClass.getConstructors();
+        for (Constructor<?> constructor : constructors) {
+            // Walk through all the constructors, matching parameter amount and parameter types with given types (argTypes)
+            Class<?>[] types = constructor.getParameterTypes();
+            if (types.length == argsTypes.length) {
+                boolean argumentsMatch = true;
+                for (int i = 0; i < argsTypes.length; i++) {
+                    // Note that the types in argsTypes must be in same order as in the constructor if the checking is done this way
+                    if (! types[i].isAssignableFrom(argsTypes[i])) {
+                        argumentsMatch = false;
+                        break;
+                    }
+                }
+                if(argumentsMatch) {
+                    // getConstructors must return Constructor<?> object, but we prefer a Constructor<? extends StageImplBase>
+                    try {
+                        return proxyClass.getConstructor(constructor.getParameterTypes());
+                    } catch (NoSuchMethodException e) {
+                        throw new PatternException("Unexpected error while looking for a constructor", e);
+                    }
+                }
+            }
+        }
+        //No matching constructor
+        return null;
     }
     
     static Method findRequiredMethod(Class<? extends Annotation> annotation, Method[] methods, String type) {
